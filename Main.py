@@ -31,6 +31,28 @@ try:
 except:
     HAS_URLLIB = False
 
+# ─── OTA Update ──────────────────────────────────────────────────────────────
+APP_VERSION     = 1
+OTA_UPDATE_URL  = "https://raw.githubusercontent.com/Banzaijan/STUDENT-STARTER-PACK/refs/heads/main/Main.py"
+OTA_VERSION_URL = "https://raw.githubusercontent.com/Banzaijan/STUDENT-STARTER-PACK/refs/heads/main/version.json"
+
+def check_ota_update():
+    if not HAS_URLLIB:
+        return
+    try:
+        with urllib.request.urlopen(OTA_VERSION_URL, timeout=5) as r:
+            info = json.loads(r.read().decode())
+        latest = info.get("version", 1)
+        if latest > APP_VERSION:
+            with urllib.request.urlopen(OTA_UPDATE_URL, timeout=10) as r:
+                new_code = r.read()
+            script_path = os.path.abspath(__file__)
+            with open(script_path, "wb") as f:
+                f.write(new_code)
+            print(f"[OTA] Updated to version {latest} — restart app to apply.")
+    except Exception as e:
+        print(f"[OTA] Check failed: {e}")
+
 # ─── Colors ──────────────────────────────────────────────────────────────────
 BG      = get_color_from_hex("#0D0D0D")
 CARD    = get_color_from_hex("#1A1A1A")
@@ -750,6 +772,9 @@ class StudentApp(App):
     def build(self):
         self.data = load_data()
         self.title = "Student Starter Pack"
+
+        # Check for OTA update in background on launch
+        threading.Thread(target=check_ota_update, daemon=True).start()
 
         root = BoxLayout(orientation="vertical")
 
